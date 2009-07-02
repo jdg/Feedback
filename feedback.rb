@@ -2,8 +2,7 @@
 ## 
 ## Requires json (sudo gem install json)
 ## Usage:
-## feedback = Feedback.new
-## feedback.receive
+## devices = Feedback.receive
 ##
 ## Copyright (c) 2009 Jonathan George (jonathan@jdg.net)
 ##
@@ -32,16 +31,23 @@ class Feedback
 
   def self.receive
     socket, ssl = ssl_connection
-    buffer = ''
 
-    while (!ssl.eof?)
-      buffer += ssl.read
+    devices = []
+
+    while data = socket.read(76)
+      next if data.size < 76
+      timestamp, token_length, device_token = data.unpack('N1n1H140')
+      devices << { :timestamp => timestamp, :device_token => device_token}
     end
 
-    # Need to do something with 'buffer' now.
+    puts "Devices: " if devices.any?
+    devices.each do |device|
+      puts "\t#{device[:device_token]}"
+    end
 
     ssl.close
     socket.close
+    return devices
   rescue SocketError => error
     raise "Error while receieving feedback: #{error}"
 
